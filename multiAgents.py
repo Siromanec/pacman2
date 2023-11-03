@@ -85,26 +85,10 @@ class ReflexAgent(Agent):
             min_food_dist = 0
         elif action != "Stop":
             min_food_dist = dist(search_min(newPos, newFood.asList()), newPos)
-        # print(newGhostStates[0].getPosition())
-        # min_food_dist = (1/(min_food_dist+ 2*len(newFood.asList())) if min_food_dist != 0 else 1.1)
-        # min_food_dist
         min_food_dist = (1/(min_food_dist) if min_food_dist != 0 else 1.1)
-        # print(min_food_dist)
-        # print(newScaredTimes )
-        # print(newGhostStates[0].getDirection() == action)
-        # print(list(zip(newGhostStates, newScaredTimes)))
         total_dist = sum(map(lambda x: dist(x[0].getPosition(), newPos) if x[1] == 0 else 0, zip(newGhostStates, newScaredTimes)))
         ghost_direction = newGhostStates[0].getDirection()
-        # direction_bias = 1 if ghost_direction  == action else 0
-        # direction_bias = -1 if ()
-        # print(total_dist)
         total_dist = -float("inf") if total_dist == 0 else 0
-
-        # food_score = 1/len(newFood.asList()) if len(newFood.asList()) > 0 else 1
-        # score = successorGameState.getScore() + food_score # total_dist
-        # print(score - successorGameState.getScore())
-        # score = min_food_dist
-        # score = 1/len(newFood.asList())
         score = successorGameState.getScore() + total_dist + min_food_dist
         return score
 
@@ -167,22 +151,26 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        def minimax_search(gameState, state):
-            player = gameState.toMove(state)
-            value, move = max_value(gameState, state, player)
+        def minimax_search(gameState):
+
+            value, move = max_value(gameState, self.depth)
             return move
+
         def max_value(gameState, depth):
-            if gameState.is_terminal(state):
-                return gameState.utility(state, player), None
+            if gameState.isWin() or depth == 0:
+                return self.evaluationFunction(gameState), None
+
+
             v = float("-inf")
             for a in gameState.getLegalActions(0):
                 v2, a2 = min_value(gameState.generateSuccessor(0, a), depth-1, 1)
                 if v2 > v:
                     v, move = v2, a
             return v, move
+
         def min_value(gameState,  depth, playerIndex):
-            if gameState.is_terminal(state):
-                return gameState.utility(state, player), None
+            if gameState.isLose(0) or depth == 0:
+                return self.evaluationFunction(gameState), None
             v = float("inf")
             for a in gameState.getLegalActions(playerIndex):
                 if (playerIndex+1)%len(gameState.getNumAgents()) == 0:
@@ -192,15 +180,11 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 if v2 < v:
                     v, move = v2, a
             return v, move
-        def chain_functions(nplayers):
-            fn_l = [max_value] + [min_value for i in range(1, nplayers)]
-            return fn_l
         # there is a need to create min value function for each ghost and chain it together
         # only pacman function should decrement the depth
         # to chain the functions i could use chain of responsibility... embedded into the functions
         #
-        chain_functions(gameState.getNumAgents())(gameState)
-        util.raiseNotDefined()
+        return minimax_search(gameState)
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
