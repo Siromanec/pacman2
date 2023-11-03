@@ -157,11 +157,10 @@ class MinimaxAgent(MultiAgentSearchAgent):
             return move
 
         def max_value(gameState, depth):
-            if gameState.isWin() or depth == 0:
+            if gameState.isWin() or gameState.isLose() or depth == 0:
                 return self.evaluationFunction(gameState), None
-
-
             v = float("-inf")
+            move = None
             for a in gameState.getLegalActions(0):
                 v2, a2 = min_value(gameState.generateSuccessor(0, a), depth-1, 1)
                 if v2 > v:
@@ -169,11 +168,12 @@ class MinimaxAgent(MultiAgentSearchAgent):
             return v, move
 
         def min_value(gameState,  depth, playerIndex):
-            if gameState.isLose(0) or depth == 0:
+            if gameState.isLose() or gameState.isWin() or depth == -1:
                 return self.evaluationFunction(gameState), None
             v = float("inf")
+            move = None
             for a in gameState.getLegalActions(playerIndex):
-                if (playerIndex+1)%len(gameState.getNumAgents()) == 0:
+                if (playerIndex+1)%(gameState.getNumAgents()) == 0:
                     v2, a2 = max_value(gameState.generateSuccessor(playerIndex, a),  depth)
                 else:
                     v2, a2 = min_value(gameState.generateSuccessor(playerIndex, a),  depth, playerIndex + 1)
