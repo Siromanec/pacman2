@@ -139,7 +139,10 @@ class GameState:
     def generatePacmanSuccessor(self, action):
         """
         Generates the successor state after the specified pacman move
+        
         """
+        if action is None:
+            print ("crap")
         return self.generateSuccessor(0, action)
 
     def getPacmanState(self):

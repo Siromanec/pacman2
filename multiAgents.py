@@ -196,7 +196,39 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax_search(gameState):
+            value, move = max_value(gameState, self.depth, float("-inf"), float("inf"))
+            return move
+
+        def max_value(gameState, depth, alpha, beta):
+            if gameState.isWin() or gameState.isLose() or depth == 0:
+                return self.evaluationFunction(gameState), None
+            v = float("-inf")
+            move = None
+            for a in gameState.getLegalActions(0):
+                v2, a2 = min_value(gameState.generateSuccessor(0, a), depth-1, 1, alpha, beta)
+                if v2 > v:
+                    v, move = v2, a
+                    alpha = max((alpha, v))
+                if v > beta: return v, move
+            return v, move
+
+        def min_value(gameState,  depth, playerIndex, alpha, beta):
+            if gameState.isLose() or gameState.isWin() or depth == -1:
+                return self.evaluationFunction(gameState), None
+            v = float("inf")
+            move = None
+            for a in gameState.getLegalActions(playerIndex):
+                if (playerIndex+1)%(gameState.getNumAgents()) == 0:
+                    v2, a2 = max_value(gameState.generateSuccessor(playerIndex, a),  depth, alpha, beta)
+                else:
+                    v2, a2 = min_value(gameState.generateSuccessor(playerIndex, a),  depth, playerIndex + 1, alpha, beta)
+                if v2 < v:
+                    v, move = v2, a
+                    beta = min((beta, v))
+                if v < alpha: return v, move
+            return v, move
+        return minimax_search(gameState)
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -211,7 +243,41 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax_search(gameState):
+
+            value, move = max_value(gameState, self.depth)
+            return move
+
+        def max_value(gameState, depth):
+            if gameState.isWin() or gameState.isLose() or depth == 0:
+                return self.evaluationFunction(gameState), None
+            v = float("-inf")
+            move = None
+            for a in gameState.getLegalActions(0):
+                v2, a2 = min_value(gameState.generateSuccessor(0, a), depth-1, 1)
+                if v2 > v:
+                    v, move = v2, a
+            return v, move
+
+        def min_value(gameState,  depth, playerIndex):
+            if gameState.isLose() or gameState.isWin() or depth == -1:
+                return self.evaluationFunction(gameState), None
+            v = float("inf")
+            move = None
+            actions = gameState.getLegalActions(playerIndex)
+            u_sum = 0
+            for a in actions:
+                if (playerIndex+1)%(gameState.getNumAgents()) == 0:
+                    v2, a2 = max_value(gameState.generateSuccessor(playerIndex, a),  depth)
+                else:
+                    v2, a2 = min_value(gameState.generateSuccessor(playerIndex, a),  depth, playerIndex + 1)
+                # v2*=(1/len(actions))
+                u_sum += v2
+                if v2 < v:
+                    v, move = v2, a
+            
+            return u_sum/len(actions), move
+        return minimax_search(gameState)
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -221,7 +287,106 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    MAX_VAL = 1000000
+    def dist(xy1, xy2):
+        return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
+    def search_min(xy1, collection):
+        return min(collection, key=lambda xy2: dist(xy1, xy2))
+    if currentGameState.isWin():
 
+        return MAX_VAL
+    if currentGameState.isLose():
+        return -MAX_VAL
+    # actions = currentGameState.getLegalActions(0)
+    # print(actions)
+    score = 0
+    # for action in actions:
+    # successorGameState = currentGameState.generatePacmanSuccessor(action)
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    # "*** YOUR CODE HERE ***"
+
+    min_food_dist = MAX_VAL
+    min_cap_dist = 0
+    if currentGameState.getNumFood() == 0:
+        min_food_dist = 0
+    else:
+        min_food_dist = dist(search_min(newPos, newFood.asList()), newPos)
+    min_food_dist = (1/(min_food_dist) if min_food_dist != 0 else 1.1)
+
+    total_dist = sum(map(lambda x: dist(x[0].getPosition(), newPos) if x[1] == 0 else 0, zip(newGhostStates, newScaredTimes))) #/ currentGameState.getNumAgents()
+    
+    # ghost_direction = newGhostStates[0].getDirection()
+    # if total_dist > 5:
+    #     capsules = currentGameState.getCapsules()
+    #     if len(capsules) != 0:
+    #         min_cap_dist = dist(search_min(newPos, capsules), newPos)
+    #     else:
+    #         min_cap_dist = 0
+    #     min_cap_dist = (1/(min_cap_dist) if min_cap_dist != 0 else 1)
+
+    total_dist = -MAX_VAL if total_dist <= 1 else 0
+
+    score += currentGameState.getScore() + total_dist + min_food_dist + min_cap_dist
+
+    if betterEvaluationFunction2(currentGameState.generatePacmanSuccessor("Stop")) == score:
+        score -= MAX_VAL
+
+    return score
+    # return currentGameState.getScore()
+def betterEvaluationFunction2(currentGameState: GameState):
+    """
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
+
+    DESCRIPTION: <write something here so we know what you did>
+    """
+    "*** YOUR CODE HERE ***"
+    MAX_VAL = 1000000
+    def dist(xy1, xy2):
+        return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
+    def search_min(xy1, collection):
+        return min(collection, key=lambda xy2: dist(xy1, xy2))
+    if currentGameState.isWin():
+
+        return MAX_VAL
+    if currentGameState.isLose():
+        return -MAX_VAL
+    # actions = currentGameState.getLegalActions(0)
+    # print(actions)
+    score = 0
+    # for action in actions:
+    # successorGameState = currentGameState.generatePacmanSuccessor(action)
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    # "*** YOUR CODE HERE ***"
+
+    min_food_dist = MAX_VAL
+    min_cap_dist = 0
+    if currentGameState.getNumFood() == 0:
+        min_food_dist = 0
+    else:
+        min_food_dist = dist(search_min(newPos, newFood.asList()), newPos)
+    min_food_dist = (1/(min_food_dist) if min_food_dist != 0 else 1.1)
+
+    total_dist = sum(map(lambda x: dist(x[0].getPosition(), newPos) if x[1] == 0 else 0, zip(newGhostStates, newScaredTimes))) #/ currentGameState.getNumAgents()
+    
+    # ghost_direction = newGhostStates[0].getDirection()
+    # if total_dist > 5:
+    #     capsules = currentGameState.getCapsules()
+    #     if len(capsules) != 0:
+    #         min_cap_dist = dist(search_min(newPos, capsules), newPos)
+    #     else:
+    #         min_cap_dist = 0
+    #     min_cap_dist = (1/(min_cap_dist) if min_cap_dist != 0 else 1)
+
+    total_dist = -MAX_VAL if total_dist <= 1 else 0
+
+    score += currentGameState.getScore() + total_dist + min_food_dist + min_cap_dist
+    return score
 # Abbreviation
 better = betterEvaluationFunction
